@@ -1,0 +1,201 @@
+// Copyright (c) Open Enclave SDK contributors.
+// Licensed under the MIT License.
+
+enclave {
+	
+	enum optee_ConfidentialPackageManagerUUID {
+		CPM_UUID_P0  = 3552951228,	/* 0xd3c5bbbc */
+		CPM_UUID_P1  = 44461, 		/* 0xadad */
+		CPM_UUID_P2  = 4587, 		/* 0x11eb */
+		CPM_UUID_P3  = 189, 		/* 0xbd */
+		CPM_UUID_P4  = 37, 		/* 0x25 */
+		CPM_UUID_P5  = 67, 		/* 0x43 */
+		CPM_UUID_P6  = 98, 		/* 0x62 */
+		CPM_UUID_P7  = 0, 		/* 0x00 */
+		CPM_UUID_P8  = 46, 		/* 0x2e */
+		CPM_UUID_P9  = 39, 		/* 0x27 */
+		CPM_UUID_P10 = 73 		/* 0x49 */
+	};
+		
+	trusted {
+	/*
+	*
+	* Key Management Calls (used by the host agent that is performing key synchronization)
+	*
+	*/
+
+
+	/*!
+	 * \brief Gets the number of bytes of data buffer that are needed to hold the public key for
+	 * this device.
+	 *
+	 * Every device maintains an RSA keypair within the system enclave. The purpose of this keypair
+	 * is to allow secrets to be shared with the device such that only the system enclave is able to
+	 * decrypt them. The RSA keypair is provisioned and maintained automatically by the system enclave.
+	 * The private portion of the key never leaves the system enclave. The public portion can freely be
+	 * exported by calling \ecall_export_device_public_key().
+	 *
+	 * Call this function before calling \ecall_export_device_public_key() in order to know how large
+	 * the data buffer needs to be to receive the key.
+	 *
+	 * Note that the data size is not the same as the strength (or bit size) of the key. For 2048-bit
+	 * keys, for example, this function would not output 2048. This function always outputs the byte
+	 * buffer size that is needed to receive the key data.
+	 *
+	 * The system enclave can choose the best time to provision the device keypair. This may happen on
+	 * startup, or on the first call to this function on a just-in-time basis.
+	 *
+	 * The system enclave is permitted to make its own choice about the strength of the key. Sizes
+	 * of 1024-bit or 2048-bit would be typical. The device will ensure that the key strength is
+	 * within the capabilities of all popular encryption libraries. However, the caller cannot
+	 * specify a key strength.
+	 *
+	 * \param[out] data_size On successful return, this parameter receives the size, in bytes, of the
+	 * buffer that should be passed to \ecall_export_device_public_key().
+	 *
+	 * \return Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_get_device_public_key_data_size([out] unsigned int *data_size);
+
+	/*!
+	 * \brief Exports the RSA public key for this device.
+	 *
+	 * The device public key is an RSA public key that can be used to encrypt secrets such that they
+	 * can only be decrypted within the system enclave.
+	 *
+	 * Before calling this function, you must first call \ecall_get_device_public_key_data_size so
+	 * that you know the size of the data buffer. The data buffer must be of exactly the required size
+	 * else the function will fail.
+	 *
+	 * Secrets that are shared with the device through this interface must be wrapped (encrypted) with
+	 * this public key.
+	 *
+	 * Currently, the only secrets supported by this interface are application keys, which can be installed
+	 * using the \ecall_install_application_key() function. Application keys are symmetric keys that are used
+	 * to decrypt compiled confidential applications at deployment time.
+	 *
+	 * \param[out] data On successful return, this buffer receives the key data. The size of the buffer
+	 * must precisely match the requirements of \ecall_get_device_public_key_data_size(). The buffer
+	 * contains the DER-encoded RSAPublicKey structure, defined as per RFC3279:
+	 *
+	 *        RSAPublicKey ::= SEQUENCE {
+	 *            modulus        INTEGER,
+	 *            publicExponent INTEGER }
+	 *
+	 * \return Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_export_device_public_key([out, count=data_size] unsigned char *data, unsigned int data_size);
+
+	/*!
+	 * \brief Adds an encrypted (wrapped) application key to the system in preparation for the deployment
+	 * of a confidential application.
+	 *
+	 * The key that is installed with this function is a symmetric class key. This same symmetric key will have
+	 * been used to encrypt the confidential application when it was built. The key needs to be installed
+	 * into the system enclave so that it can be used to decrypt the confidential application binary on its
+	 * first deployment into the device.
+	 *
+	 * They key data passed to this function is assumed to have been encrypted (wrapped) using the
+	 * public key of the device. See \ecall_get_device_public_key_data_size() and
+	 * \ecall_export_device_public_key() for more details. Do not use this function to pass the key in
+	 * clear text.
+	 *
+	 * Application keys are assumed to be AES-256 symmetric keys, and the key format is raw.
+	 *
+	 * \param[in] application_id This string uniquely identifies the confidential application that can be
+	 * decrypted with this key. This identity string is needed in case more than one confidential application
+	 * needs to be installed on the device. Each application has its own decryption key, and the identity
+	 * string allows the system enclave to use the correct key.
+	 *
+	 * \param[in] data The key data, which is a raw AES-256 key that has been wrapped by the public key
+	 * of the device. The system enclave will unwrap the key internally using the private portion of the
+	 * device key.
+	 *
+	 * \param[in] data_size The size, in bytes, of the data buffer.
+	 *
+	 * \return Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_install_application_key([in, string] char *application_id, [in, count=data_size] unsigned char *data, unsigned int data_size);
+
+
+	/*
+	 *
+	 * Application Deployment Calls (used by the host agent that is installing confidential app binaries)
+	 *
+	 */
+	
+	
+	/*!
+	 * \brief Begin the process of installing a new confidential application with the given identity.
+	 *
+	 * This function initializes the process of installing a new confidential application. To install an
+	 * application, you should first call this function, and then make as many calls as necessary to
+	 * \ecall_add_application_data() to pass buffers of encrypted data into the system enclave. Once
+	 * all buffers are passed, call \ecall_end_application_deployment() to complete the installation
+	 * process.
+	 *
+	 * Before calling this function, you must first have shared a suitable symmetric application key so
+	 * that the system enclave can decrypt the data blocks. Use the
+	 * \ecall_install_application_key() for this purpose. The application identity has the same semantics
+	 * across all functions. The system enclave will expect to be able to find a key with the same id
+	 * in the system.
+	 *
+	 * After calling this function, enter a loop and call \ecall_add_application_data() to add blocks of
+	 * data sequentially into the system enclave. Once all blocks have been transferred, make a final
+	 * call to \ecall_end_application_deployment() to close out the process. The confidential application
+	 * will then be available for execution.
+	 *
+	 * \param[in] application_id The unique string identifier for the application being installed. An
+	 * application key with the same identity string must previously have been shared into the
+	 * system enclave.
+	 *
+	 * \returns Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_begin_application_deployment([in, string] char *application_id);
+	
+	/*!
+	 * \brief Pass a single block of encrypted application data.
+	 *
+	 * This function adds a block of encrypted applicaion data to the system enclave for the
+	 * confidential application with the given id. The system enclave will decrypt this using the
+	 * previously-shared application key.
+	 *
+	 * It is an error to call this function without first having called
+	 * \ecall_begin_application_deployment() with the same application id string to
+	 * initialize the installation process for this application.
+	 *
+	 * After passing the final block of data, call \ecall_end_application_deployment() to
+	 * finalize the process for this application.
+	 *
+	 * \param[in] application_id The unique string identifier for the application being installed. An
+	 * application key with the same identity string must previously have been shared into the
+	 * system enclave.
+	 *
+	 * \param[in] data A block of encrypted data making up the confidential application binary.
+	 *
+	 * \param[in] data_size The size, in bytes, of the data block being passed with this call.
+	 *
+	 * \returns Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_add_application_data([in, string] char *application_id, [in, count=data_size] unsigned char *data, unsigned int data_size);
+	
+	/*!
+	 * \brief Terminates the process of installing a confidential application.
+	 *
+	 * Call this function once after passing the final block of application data.
+	 *
+	 * \param[in] application_id The unique string identifier for the application being installed. An
+	 * application key with the same identity string must previously have been shared into the
+	 * system enclave.
+	 *
+	 * \returns Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_end_application_deployment([in, string] char *application_id);
+
+};
+
+	untrusted {
+		/* define OCALLs here. */
+		int ocall_log([in, string] char *msg);
+	};
+};
