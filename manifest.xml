@@ -1,0 +1,12 @@
+<manifest>
+
+	<remote fetch="https://git.yoctoproject.org/git" name="yocto"/>
+	<remote fetch="https://git.openembedded.org/" name="openembedded"/>
+	<remote fetch="ssh://git@github.com/" name="github"/>
+	<remote fetch="https://source.sintecs.nl/" name="source.sintecs"/>
+
+	<project remote="github" revision="main" name="Scalys/ConfidentialPackageSpecification" path="ConfidentialPackageSpecification"/>
+	<project remote="github" revision="main" name="Scalys/ConfidentialPackageManager"       path="ConfidentialPackageManager"/>
+	<project remote="github" revision="main" name="Scalys/ConfidentialPackageInstaller"     path="ConfidentialPackageInstaller"/>
+
+</manifest>
