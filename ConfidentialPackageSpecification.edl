@@ -154,6 +154,41 @@ enclave {
 	public int ecall_begin_application_deployment([in, string] char *application_id);
 	
 	/*!
+	 * \brief Initializes the decryption process for the application data that is about to be installed.
+	 *
+	 * This function should be called before the first call to \ecall_add_application_data(), so that
+	 * the receiver knows what decryption algorithm to use. This function is specialized for AES GCM
+	 * encryption, which is currently the only scheme supported by this interface. If new schemes are
+	 * supported in the future, then it will be necessary to add new specialized initializer methods.
+	 *
+	 * For a given application deployment, this method should be called exactly once in between
+	 * \ecall_begin_application_deployment() and the first call to \ecall_add_application_data().
+	 *
+	 * \param[in] application_id The unique string identifier for the application being installed. An
+	 * application key with the same identity string must previously have been shared into the
+	 * system enclave.
+	 *
+	 * \param[in] key_strength The size, in bits, of the AES encryption key. Currently, this is always
+	 * 256.
+	 *
+	 * \param[in] iv The initialization vector, as an array of bytes.
+	 *
+	 * \param[in] iv_size The size, in bytes, of the initialization vector.
+	 *
+	 * \param[in] tag The authentication tag, as an array of bytes.
+	 *
+	 * \param[in] tag_size The size, in bytes, of the tag.
+	 *
+	 * \returns Zero on success, nonzero on failure (error codes TBD).
+	 */
+	public int ecall_initialize_decryption_aes_gcm([in, string] char *application_id,
+	                                               unsigned int key_strength,
+	                                               [in, count=iv_size] unsigned char *iv,
+												   unsigned int iv_size,
+												   [in, count=tag_size] unsigned char *tag,
+												   unsigned int tag_size);
+
+	/*!
 	 * \brief Pass a single block of encrypted application data.
 	 *
 	 * This function adds a block of encrypted applicaion data to the system enclave for the
