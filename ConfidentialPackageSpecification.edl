@@ -213,7 +213,63 @@ enclave {
 	 * \returns Zero on success, nonzero on failure (error codes TBD).
 	 */
 	public int ecall_add_application_data([in, string] char *application_id, [in, count=data_size] unsigned char *data, unsigned int data_size);
-	
+
+    /*!
+	 * Verifies the hash and signature of the application data, once it has been received and decrypted within the
+	 * system TEE.
+	 *
+	 * This function will be called by the host in cases where the application was hashed and signed before it was
+	 * encrypted, and the digest and signature are known to the host. Since only the TEE ever sees the decrypted application
+	 * data, only the TEE can check the hash and verify the signature. The host passes in all data required, including
+	 * the public key for signature verification.
+	 *
+	 * This function is specialized for the case where the hash is computed using SHA256, and the signature is computed
+	 * using RSA PKCS1.5.
+	 *
+	 * The host optionally calls this function once after transferring the final block of encrypted application data
+	 * with \ecall_add_application_data().
+	 *
+	 * \param[in] application_id The unique string identifier for the application being installed. An
+	 * application key with the same identity string must previously have been shared into the
+	 * system enclave.
+	 * 
+	 * \param[in] digest The SHA-256 digest of the cleartext application data.
+	 *
+	 * \param[in] digest_size The size, in bytes, of the digest data buffer.
+	 *
+	 * \param[in] signature The RSA PKCS1.5 signature of the cleartext application data.
+	 *
+	 * \param[in] signature_size The size, in bytes, of the signature data buffer.
+	 *
+	 * \param[in] public_key RSA Public key data. The buffer
+	 * contains the DER-encoded RSAPublicKey structure, defined as per RFC3279:
+	 *
+	 *        RSAPublicKey ::= SEQUENCE {
+	 *            modulus        INTEGER,
+	 *            publicExponent INTEGER }
+	 *
+	 * \param[in] public_key_size The size, in bytes, of the public key data buffer.
+	 *
+	 * \param[out] digest_match On successful return, this parameter receives TRUE if the computed digest
+	 * matches the given digest, and FALSE otherwise.
+	 *
+	 * \param[out] signature_match On successful return, this parameter receives TRUE if the computed
+	 * signature matches the given signature, and FALSE otherwise.
+	 * 
+	 * \returns Zero on success, nonzero on failure (error codes TBD). Note that a successful return of
+	 * the function does not mean a successful signature verification. The host must consult the
+	 * output parameters to check for successful match on the digest and the signature.
+	 */
+	public int ecall_verify_application_sha256_rsa_pkcs1_v15([in, string] char *application_id,
+	                                                         [in, count=digest_size] unsigned char *digest,
+														     unsigned int digest_size,
+														     [in, count=signature_size] unsigned char *signature,
+														     unsigned int signature_size,
+														     [in, count=public_key_size] unsigned char *public_key,
+														     unsigned int public_key_size,
+														     [out] bool *digest_match,
+														     [out] bool *signature_match);
+
 	/*!
 	 * \brief Terminates the process of installing a confidential application.
 	 *
