@@ -233,6 +233,9 @@ enclave {
      * application key with the same identity string must previously have been shared into the
      * system enclave.
      * 
+     * \param[in] key_strength The strength (size), in bits, of the RSA public key, eg. 1024 or 2048. Not to be
+     * confused with the public_key_size parameter, which is the number of bytes in the DER buffer.
+     *
      * \param[in] digest The SHA-256 digest of the cleartext application data.
      *
      * \param[in] digest_size The size, in bytes, of the digest data buffer.
@@ -261,6 +264,7 @@ enclave {
      * output parameters to check for successful match on the digest and the signature.
      */
     public int ecall_verify_application_sha256_rsa_pkcs1_v15([in, string] char *application_id,
+                                                             unsigned int key_strength,
                                                              [in, count=digest_size] unsigned char *digest,
                                                              unsigned int digest_size,
                                                              [in, count=signature_size] unsigned char *signature,
