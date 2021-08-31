@@ -20,6 +20,47 @@ enclave {
     trusted {
     /*
     *
+    * Contract management and system bootstrapping functions.
+    *
+    */
+
+
+    /*!
+     * \brief A bootstrapping call to ping the Confidential Package Manager, to make sure that it
+     * is responding, and to determine the maximum version of this interface that it supports.
+     *
+     * \param[out] supported_version Upon successful return, this parameter receives the cardinal
+     * number of the interface version supported by the Confidential Package Manager. This value
+     * must be at least 1. Callers should use this value to determine at runtime whether higher versions
+     * of the interface can be used.
+     *
+     * \return Zero on success. Since this is a bootstrapping call, it could only fail as a result
+     * of the Confidential Package Manager being absent or incorrectly installed. Such failures would
+     * be handled by the OpenEnclave mechanisms, and not defined in this contract. If this function
+     * executes at all, it will always return zero.
+     */
+    public int ecall_ping([out] unsigned int *supported_contract_version);
+
+    /*!
+     * \brief Determines whether a given named operation is supported by the Confidential Package Manager.
+     *
+     * Although \ecall_ping() can be used do determine the numerical version of the supported contract,
+     * and hence to effectively infer what operations are available, it can sometimes be useful to query
+     * the availability of a single, specific operation before calling it.
+     *
+     * \param[in] operation_name The string name of an operation defined in this interface. For example:
+     * "ecall_ping" or "ecall_export_device_public_key".
+     *
+     * \param[out] is_supported On successful return, this parameter receives a boolean flag indicating whether
+     * the given operation is supported.
+     *
+     * \return Zero on success, nonzero on failure (error codes TBD).
+     */
+    public int ecall_is_operation_supported([in, string] char *operation_name, [out] bool *is_supported);
+
+
+    /*
+    *
     * Key Management Calls (used by the host agent that is performing key synchronization)
     *
     */
@@ -148,10 +189,14 @@ enclave {
      * \param[in] application_id The unique string identifier for the application being installed. An
      * application key with the same identity string must previously have been shared into the
      * system enclave.
+     *
+     * \param[in] total_data_size The total size, in bytes, of the encrypted application data that will
+     * be transferred. This is a hint value that the TEE can use to double check that it is receiving
+     * the correct amount of data. The value could also be used to eagerly pre-allocate storage.
      *
      * \returns Zero on success, nonzero on failure (error codes TBD).
      */
-    public int ecall_begin_application_deployment([in, string] char *application_id);
+    public int ecall_begin_application_deployment([in, string] char *application_id, unsigned long total_data_size);
     
     /*!
      * \brief Initializes the decryption process for the application data that is about to be installed.
