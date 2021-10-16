@@ -3,6 +3,7 @@
 
 enclave {
     
+    /* UUID = d3c5bbbc-adad-11eb-bd25-4362002e2749 */
     enum optee_ConfidentialPackageManagerUUID {
         CPM_UUID_P0  = 3552951228,	/* 0xd3c5bbbc */
         CPM_UUID_P1  = 44461, 		/* 0xadad */
