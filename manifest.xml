@@ -5,8 +5,8 @@
 	<remote fetch="ssh://git@github.com/" name="github"/>
 	<remote fetch="https://source.sintecs.nl/" name="source.sintecs"/>
 
-	<project remote="github" revision="main" name="Scalys/ConfidentialPackageSpecification" path="ConfidentialPackageSpecification"/>
-	<project remote="github" revision="main" name="Scalys/ConfidentialPackageManager"       path="ConfidentialPackageManager"/>
-	<project remote="github" revision="main" name="Scalys/ConfidentialPackageInstaller"     path="ConfidentialPackageInstaller"/>
+	<project remote="github" revision="main" name="EnclaveDeviceBlueprint/ConfidentialPackageSpecification" path="ConfidentialPackageSpecification"/>
+	<project remote="github" revision="main" name="EnclaveDeviceBlueprint/ConfidentialPackageManager"       path="ConfidentialPackageManager"/>
+	<project remote="github" revision="main" name="EnclaveDeviceBlueprint/ConfidentialPackageInstaller"     path="ConfidentialPackageInstaller"/>
 
 </manifest>
